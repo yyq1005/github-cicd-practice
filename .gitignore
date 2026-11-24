@@ -1,0 +1,5 @@
+node_modules/
+dist/
+npm-out*.txt
+*.log
+.DS_Store

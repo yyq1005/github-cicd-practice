@@ -1,0 +1,77 @@
+name: Build and Deploy Full Stack to ECS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ecs-production
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    # 使用 CentOS 7.9 虚拟机上的 self-hosted runner（deploy 用户）
+    runs-on: self-hosted
+    timeout-minutes: 30
+    env:
+      DEST_BASE: /srv/cicd-demo
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Node version
+        run: node -v && npm -v
+
+      - name: Build and test frontend
+        working-directory: apps/frontend
+        run: |
+          npm ci
+          CI=true npm test --if-present
+          npm run build
+
+      - name: Build and test backend
+        working-directory: apps/backend
+        run: |
+          npm ci
+          CI=true npm test --if-present
+          npm run build
+          test -f dist/server.js
+
+      # runner 与部署目标为同一台机器，直接本地复制制品（替代 ssh/rsync）
+      - name: Upload frontend and backend artifacts
+        run: |
+          DEST="$DEST_BASE/releases/${GITHUB_SHA}"
+          mkdir -p "$DEST/frontend" "$DEST/backend/dist"
+          cp -r apps/frontend/dist/. "$DEST/frontend/"
+          cp -r apps/backend/dist/. "$DEST/backend/dist/"
+          cp apps/backend/package.json apps/backend/package-lock.json "$DEST/backend/"
+
+      - name: Activate release, check health, rollback if needed
+        run: |
+          set -euo pipefail
+          DEST="$DEST_BASE/releases/${GITHUB_SHA}"
+          previous="$(readlink -f "$DEST_BASE/current" || true)"
+
+          cd "$DEST/backend"
+          npm ci --omit=dev
+
+          ln -sfn "$DEST" "$DEST_BASE/current.next"
+          mv -Tf "$DEST_BASE/current.next" "$DEST_BASE/current"
+
+          if ! sudo -n /usr/bin/systemctl restart cicd-demo || \
+             ! curl -fsS --retry 5 --retry-connrefused --retry-delay 2 \
+               http://127.0.0.1:3000/health; then
+            echo 'Deployment failed; restoring previous release' >&2
+            if [ -n "$previous" ] && [ -d "$previous" ]; then
+              ln -sfn "$previous" "$DEST_BASE/current.next"
+              mv -Tf "$DEST_BASE/current.next" "$DEST_BASE/current"
+              sudo -n /usr/bin/systemctl restart cicd-demo
+            fi
+            exit 1
+          fi
+          echo "Deployed commit ${GITHUB_SHA} successfully"
