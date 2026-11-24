@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CI/CD 实验静态页面</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; background: #f3f6fb; color: #172033;
+           display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    .card { background: #fff; border-radius: 16px; box-shadow: 0 10px 30px rgba(15,23,42,.08);
+            padding: 40px 56px; text-align: center; }
+    h1 { color: #1e66f5; margin: 0 0 12px; }
+    p { color: #667085; margin: 6px 0; }
+    .tag { display: inline-block; background: #e8f0ff; color: #1e66f5; border-radius: 999px;
+           padding: 4px 14px; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="tag">实验一 · GitHub Pages 自动部署</span>
+    <h1>Hello, CI/CD!</h1>
+    <p>本页面由 GitHub Actions 自动校验并部署到 gh-pages 分支。</p>
+    <p>修改这里的内容并 push，可以再次触发自动部署（实验一验证点 4）。</p>
+    <p>deployed by yyq1005</p>
+  </div>
+</body>
+</html>
