@@ -1,5 +1,7 @@
 node_modules/
-dist/
-npm-out*.txt
+apps/frontend/dist/
+apps/backend/dist/
+*.txt
+!README.md
 *.log
 .DS_Store
